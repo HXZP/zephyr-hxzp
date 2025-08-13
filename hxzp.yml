@@ -1,6 +1,11 @@
 manifest:
 
+  defaults:
+    remote: hxzp
+
   remotes:
+    - name: hxzp
+      url-base: https://github.com/HXZP
     - name: upstream
       url-base: https://github.com/zephyrproject-rtos
 
