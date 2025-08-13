@@ -7,7 +7,7 @@ manifest:
     - name: hxzp
       url-base: https://github.com/HXZP
     - name: upstream
-      url-base: https://github.com/zephyrproject-rtos
+      url-base: git@github.com:zephyrproject-rtos
 
   projects:
     - name: zephyr
