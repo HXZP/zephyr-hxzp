@@ -1,0 +1,27 @@
+manifest:
+
+  remotes:
+    - name: upstream
+      url-base: https://github.com/zephyrproject-rtos
+
+  projects:
+    - name: zephyr
+      remote: upstream
+      revision: main
+      path: zephyr
+      import:
+        path-prefix: zephyr-sdk
+        # By using name-allowlist we can clone only the modules that are
+        # strictly needed by the application.
+        name-allowlist:
+          - cmsis
+          - cmsis_6
+          - cmsis-nn
+          - cmsis-dsp
+          - segger
+          - hal_st
+          - hal_stm32
+
+  self:
+    path: hxzp
+    import: submanifests
