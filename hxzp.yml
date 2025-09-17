@@ -29,4 +29,4 @@ manifest:
 
   self:
     path: zephyr-hxzp
-    import: submanifests
+
