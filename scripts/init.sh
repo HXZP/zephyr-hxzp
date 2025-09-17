@@ -3,7 +3,7 @@
 west init -m https://github.com/HXZP/zephyr-hxzp.git --mf hxzp.yml
 
 west update
-source zephyr/zephyr/zephyr-env.sh
+source zephyr-sdk/zephyr/zephyr-env.sh
 
 # install pip package dependencies
 west packages pip --install
