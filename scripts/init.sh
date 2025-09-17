@@ -12,4 +12,4 @@ west packages pip --install
 west sdk install --install-dir zephyr-sdk/toolchain \
      --toolchains arm-zephyr-eabi
 
-cp zephyr-hxzp/scripts/env.sh env.sh
+cp -s zephyr-hxzp/scripts/env.sh env.sh
