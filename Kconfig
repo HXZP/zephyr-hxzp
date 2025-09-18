@@ -1,0 +1,21 @@
+# Copyright (c) 2025 HXZP
+# SPDX-License-Identifier: Apache-2.0
+
+# This is the application's Kconfig file. It is included by Zephyr's build system
+# as specified in zephyr/module.yml.
+
+# Include Zephyr's base Kconfig options
+rsource "drivers/Kconfig"
+
+# Include application specific Kconfig options
+menuconfig HXZP
+	bool "HXZP Application Options"
+	default y
+	help
+	  Configure options for the HXZP application.
+
+if HXZP
+
+# Application specific options can be added here
+
+endif # HXZP

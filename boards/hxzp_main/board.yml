@@ -1,0 +1,6 @@
+board:
+  name: hxzp_main
+  full_name: HXZP MAIN
+  vendor: st
+  socs:
+    - name: stm32f103xe

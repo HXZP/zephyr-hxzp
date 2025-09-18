@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+
+# enable uart driver
+CONFIG_SERIAL=y
+
+# enable drivers
+CONFIG_DMA=y
+CONFIG_GPIO=y
+CONFIG_COUNTER=y
+CONFIG_PWM=y
+CONFIG_SERIAL=y
+CONFIG_SPI=y
+CONFIG_I2C=y
+CONFIG_CAN=y
