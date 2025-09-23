@@ -12,7 +12,7 @@ manifest:
   projects:
     - name: zephyr
       remote: upstream
-      revision: main
+      revision: v4.2-branch
       path: zephyr
       import:
         path-prefix: zephyr-sdk
