@@ -1,0 +1,19 @@
+identifier: hxzp_f103ve
+name: HXZP F103VE
+type: mcu
+arch: arm
+toolchain:
+  - zephyr
+  - gnuarmemb
+ram: 64
+flash: 512
+supported:
+  - gpio
+  - spi
+  - pwm
+  - watchdog
+  - adc
+  - dma
+  - nvs
+  - counter
+vendor: st
