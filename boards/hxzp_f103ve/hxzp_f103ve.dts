@@ -11,8 +11,8 @@
 #include <zephyr/dt-bindings/led/led.h>
 
 / {
-	model = "HXZP main board";
-	compatible = "hxzp,main";
+	model = "HXZP F103VE board";
+	compatible = "hxzp,f103ve";
 
 	chosen {
 		zephyr,console = &usart3;

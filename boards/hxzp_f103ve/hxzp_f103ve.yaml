@@ -1,5 +1,5 @@
-identifier: hxzp_main
-name: HXZP MAIN
+identifier: hxzp_f103ve
+name: HXZP F103VE
 type: mcu
 arch: arm
 toolchain:
