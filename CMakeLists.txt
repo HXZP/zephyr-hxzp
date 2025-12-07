@@ -5,9 +5,9 @@
 # as the module CMake entry point (see zephyr/module.yml).
 
 
-zephyr_syscall_include_directories(../external/zephyr/include)
+# zephyr_syscall_include_directories(../external/zephyr/include)
 
-zephyr_include_directories(../external/zephyr/include)
+# zephyr_include_directories(../external/zephyr/include)
 
-add_subdirectory(drivers)
+# add_subdirectory(drivers)
 
