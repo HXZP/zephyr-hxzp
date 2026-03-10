@@ -1,0 +1,6 @@
+board:
+  name: duck_mid
+  full_name: DUCK MID
+  vendor: hxzp
+  socs:
+    - name: stm32f103xb

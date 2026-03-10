@@ -1,0 +1,85 @@
+/*
+ * Copyright (c) 2017 Linaro Limited
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/dts-v1/;
+#include <st/f1/stm32f103X8.dtsi>
+#include <st/f1/stm32f103c(8-b)tx-pinctrl.dtsi>
+//#include <zephyr/dt-bindings/input/input-event-codes.h>
+#include <zephyr/dt-bindings/led/led.h>
+#include <zephyr/dt-bindings/spi/spi.h>
+
+/ {
+	model = "Duck Mid board";
+	compatible = "hxzp,duck_mid";
+
+	chosen {
+		zephyr,sram = &sram0;
+		zephyr,flash = &flash0;
+	};
+};
+
+&clk_hsi {
+	status = "okay";
+};
+
+&clk_lsi {
+	status = "okay";
+};
+
+&clk_hse {
+	status = "disabled";
+};
+
+&pll {
+	mul = <16>;
+	clocks = <&clk_hsi>;
+	status = "okay";
+};
+
+&rcc {
+	clocks = <&pll>;
+	clock-frequency = <DT_FREQ_M(64)>;
+	ahb-prescaler = <1>;
+	apb1-prescaler = <2>;
+	apb2-prescaler = <1>;
+	adc-prescaler = <2>;
+};
+
+&usart1 {
+	pinctrl-0 = <&usart1_tx_pa9 &usart1_rx_pa10>;
+	pinctrl-names = "default";
+	current-speed = <115200>;
+	status = "okay";
+};
+
+&can1 { 
+    status = "okay"; 
+    pinctrl-0 = <&can_rx_pa11 &can_tx_pa12>; 
+    pinctrl-names = "default"; 
+};
+
+&spi2 {
+    status = "okay";
+    pinctrl-0 = <&spi2_sck_master_pb13 &spi2_mosi_master_pb15 &spi2_miso_master_pb14>;
+    pinctrl-names = "default";
+
+    rgb_led: ws2812@0 {
+        compatible = "worldsemi,ws2812-spi";
+        // SPI
+        reg = <0>;
+        spi-max-frequency = <4000000>;
+        // frame-format = <SPI_FRAME_FORMAT_TI>;
+        // WS2812
+        chain-length = <2>;
+        spi-one-frame = <0x70>;
+        spi-zero-frame = <0x40>;
+        color-mapping = <LED_COLOR_ID_GREEN>,
+                        <LED_COLOR_ID_RED>,
+                        <LED_COLOR_ID_BLUE>;
+        reset-delay = <250>;
+    };
+};
+
