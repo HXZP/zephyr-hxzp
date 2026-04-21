@@ -53,6 +53,10 @@
 	pinctrl-names = "default";
 	current-speed = <115200>;
 	status = "okay";
+
+    dmas = <&dma1 3 (STM32_DMA_PERIPH_TX | STM32_DMA_PRIORITY_HIGH)>,  /* 发送通道：使用 DMA1，通道3，请求4，其它配置 */
+           <&dma1 1 (STM32_DMA_PERIPH_RX | STM32_DMA_PRIORITY_HIGH)>;  /* 接收通道：使用 DMA1，通道1，请求4，其它配置 */
+    dma-names = "tx", "rx";
 };
 
 &can1 { 
