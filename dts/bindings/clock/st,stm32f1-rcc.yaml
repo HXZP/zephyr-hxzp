@@ -1,0 +1,24 @@
+# Copyright (c) 2026 HXZP
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  STM32F1 RCC (Reset and Clock controller).
+
+  Adds the STM32F1 ADC prescaler to the standard generic STM32 RCC.
+  For more description confere st,stm32-rcc.yaml
+
+compatible: "st,stm32f1-rcc"
+
+include: st,stm32-rcc.yaml
+
+properties:
+  adc-prescaler:
+    type: int
+    required: true
+    enum:
+      - 2
+      - 4
+      - 6
+      - 8
+    description: |
+      ADC clock prescaler. Defines ADC clock frequency based on PCLK2.
