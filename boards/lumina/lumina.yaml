@@ -1,0 +1,14 @@
+identifier: lumina
+name: Lumina
+type: mcu
+arch: arm
+toolchain:
+  - zephyr
+  - gnuarmemb
+ram: 20
+flash: 64
+supported:
+  - gpio
+  - i2c
+  - usb_device
+vendor: hxzp

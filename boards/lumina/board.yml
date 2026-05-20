@@ -1,0 +1,6 @@
+board:
+  name: lumina
+  full_name: Lumina
+  vendor: hxzp
+  socs:
+    - name: stm32f103xb
