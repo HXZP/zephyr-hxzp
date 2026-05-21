@@ -47,6 +47,7 @@
 };
 
 &rcc {
+	compatible = "st,stm32f1-rcc", "st,stm32-rcc";
 	clocks = <&pll>;
 	clock-frequency = <DT_FREQ_M(72)>;
 	ahb-prescaler = <1>;
