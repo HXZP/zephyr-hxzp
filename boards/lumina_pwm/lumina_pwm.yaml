@@ -1,0 +1,15 @@
+identifier: lumina_pwm
+name: Lumina PWM
+type: mcu
+arch: arm
+toolchain:
+  - zephyr
+  - gnuarmemb
+ram: 20
+flash: 64
+supported:
+  - gpio
+  - i2c
+  - pwm
+  - usb_device
+vendor: hxzp

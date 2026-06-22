@@ -5,10 +5,11 @@
 /dts-v1/;
 #include <st/f1/stm32f103X8.dtsi>
 #include <st/f1/stm32f103c(8-b)tx-pinctrl.dtsi>
+#include <zephyr/dt-bindings/pwm/pwm.h>
 
 / {
-	model = "Lumina board";
-	compatible = "hxzp,lumina";
+	model = "Lumina PWM board";
+	compatible = "hxzp,lumina-pwm";
 
 	chosen {
 		zephyr,sram = &sram0;
@@ -17,17 +18,18 @@
 		zephyr,shell-uart = &cdc_acm_uart0;
 	};
 
-	leds {
-		compatible = "gpio-leds";
+	pwmleds {
+		compatible = "pwm-leds";
 
-		user_led: led_0 {
-			gpios = <&gpiob 12 GPIO_ACTIVE_HIGH>;
-			label = "Lumina LED";
+		user_pwm_led: led_0 {
+			pwms = <&pwm1 1 PWM_USEC(1000) PWM_POLARITY_NORMAL>;
+			label = "Lumina PWM LED";
 		};
 	};
 
 	aliases {
-		led0 = &user_led;
+		led0 = &user_pwm_led;
+		pwm-led0 = &user_pwm_led;
 	};
 };
 
@@ -47,6 +49,7 @@
 };
 
 &rcc {
+	compatible = "st,stm32f1-rcc", "st,stm32-rcc";
 	clocks = <&pll>;
 	clock-frequency = <DT_FREQ_M(72)>;
 	ahb-prescaler = <1>;
@@ -69,6 +72,17 @@
 	accelerometer: accelerometer@18 {
 		compatible = "zephyr,i2c-device";
 		reg = <0x18>;
+	};
+};
+
+&timers1 {
+	st,prescaler = <1000>;
+	status = "okay";
+
+	pwm1: pwm {
+		status = "okay";
+		pinctrl-0 = <&tim1_ch1_pwm_out_pa8>;
+		pinctrl-names = "default";
 	};
 };
 

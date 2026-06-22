@@ -1,0 +1,6 @@
+board:
+  name: lumina_pwm
+  full_name: Lumina PWM
+  vendor: hxzp
+  socs:
+    - name: stm32f103xb
