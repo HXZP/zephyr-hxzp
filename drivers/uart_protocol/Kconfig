@@ -1,0 +1,31 @@
+# Copyright (c) 2026 HXZP
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig HXZP_UART_PROTOCOL
+	bool "HXZP UART frame protocol driver"
+	depends on SERIAL
+	depends on UART_INTERRUPT_DRIVEN
+	help
+	  Enable the HXZP UART frame protocol driver.
+
+if HXZP_UART_PROTOCOL
+
+config HXZP_UART_PROTOCOL_THREAD_STACK_SIZE
+	int "UART protocol thread stack size"
+	default 1536
+	help
+	  Stack size for the UART protocol receive parsing thread.
+
+config HXZP_UART_PROTOCOL_THREAD_PRIORITY
+	int "UART protocol thread priority"
+	default 5
+	help
+	  Priority for the UART protocol receive parsing thread.
+
+config HXZP_UART_PROTOCOL_INIT_PRIORITY
+	int "UART protocol init priority"
+	default 85
+	help
+	  Device initialization priority for the UART protocol driver.
+
+endif

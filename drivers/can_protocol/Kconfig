@@ -1,0 +1,49 @@
+# Copyright (c) 2026 HXZP
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig HXZP_CAN_PROTOCOL
+	bool "HXZP CAN protocol transport driver"
+	depends on CAN
+	help
+	  Enable the HXZP CAN protocol transport driver.
+
+if HXZP_CAN_PROTOCOL
+
+config HXZP_CAN_PROTOCOL_MAX_RX_FILTERS
+	int "Maximum CAN protocol receive filters"
+	default 8
+	range 1 16
+	help
+	  Maximum number of receive filters that one CAN protocol device can own.
+
+config HXZP_CAN_PROTOCOL_TX_THREAD_STACK_SIZE
+	int "CAN protocol TX thread stack size"
+	default 1024
+	help
+	  Stack size for the CAN protocol transmit thread.
+
+config HXZP_CAN_PROTOCOL_TX_THREAD_PRIORITY
+	int "CAN protocol TX thread priority"
+	default 6
+	help
+	  Priority for the CAN protocol transmit thread.
+
+config HXZP_CAN_PROTOCOL_RX_THREAD_STACK_SIZE
+	int "CAN protocol RX thread stack size"
+	default 1024
+	help
+	  Stack size for the CAN protocol receive dispatch thread.
+
+config HXZP_CAN_PROTOCOL_RX_THREAD_PRIORITY
+	int "CAN protocol RX thread priority"
+	default 5
+	help
+	  Priority for the CAN protocol receive dispatch thread.
+
+config HXZP_CAN_PROTOCOL_INIT_PRIORITY
+	int "CAN protocol init priority"
+	default 80
+	help
+	  Device initialization priority for the CAN protocol transport driver.
+
+endif

@@ -1,0 +1,7 @@
+menu "HXZP drivers"
+
+rsource "can_protocol/Kconfig"
+rsource "motor/Kconfig"
+rsource "uart_protocol/Kconfig"
+
+endmenu

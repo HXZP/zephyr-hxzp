@@ -1,0 +1,29 @@
+# Copyright (c) 2026 HXZP
+# SPDX-License-Identifier: Apache-2.0
+
+description: HXZP CAN protocol transport device
+
+compatible: "hxzp,can-protocol"
+
+include: base.yaml
+
+properties:
+  can:
+    type: phandle
+    required: true
+    description: CAN controller used by this transport device.
+
+  bitrate:
+    type: int
+    default: 500000
+    description: CAN arbitration bitrate in bit/s.
+
+  tx-queue-len:
+    type: int
+    default: 16
+    description: Number of frames in the transmit queue.
+
+  rx-queue-len:
+    type: int
+    default: 16
+    description: Number of frames in the receive dispatch queue.

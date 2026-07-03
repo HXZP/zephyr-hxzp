@@ -1,0 +1,33 @@
+# Copyright (c) 2026 HXZP
+# SPDX-License-Identifier: Apache-2.0
+
+description: HXZP gen-motor protocol device
+
+compatible: "hxzp,gen-motor"
+
+include: base.yaml
+
+properties:
+  can-protocol:
+    type: phandle
+    required: true
+    description: CAN protocol transport device used by gen-motor.
+
+child-binding:
+  description: One motor object managed by the gen-motor device.
+
+  properties:
+    node-id:
+      type: int
+      required: true
+      description: Default business node ID of the motor.
+
+    motor-name:
+      type: string
+      required: true
+      description: Human readable motor object name.
+
+    report-period-ms:
+      type: int
+      default: 10
+      description: Default report period cache in milliseconds.

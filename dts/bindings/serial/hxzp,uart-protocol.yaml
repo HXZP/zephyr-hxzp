@@ -1,0 +1,23 @@
+# Copyright (c) 2026 HXZP
+# SPDX-License-Identifier: Apache-2.0
+
+description: HXZP UART frame protocol device
+
+compatible: "hxzp,uart-protocol"
+
+include: base.yaml
+
+properties:
+  uart:
+    type: phandle
+    required: true
+    description: UART device used by the frame protocol.
+
+  rx-ring-size:
+    type: int
+    default: 256
+    description: Receive ring buffer size in bytes.
+
+  echo-rx-raw:
+    type: boolean
+    description: Echo received raw bytes for link debugging.

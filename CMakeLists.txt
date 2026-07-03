@@ -9,5 +9,7 @@
 
 # zephyr_include_directories(../external/zephyr/include)
 
-# add_subdirectory(drivers)
+zephyr_include_directories(include)
+
+add_subdirectory(drivers)
 

@@ -1,0 +1,18 @@
+# Copyright (c) 2026 HXZP
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig HXZP_GEN_MOTOR
+	bool "HXZP gen-motor driver"
+	depends on HXZP_CAN_PROTOCOL
+	help
+	  Enable the HXZP gen-motor CAN protocol driver.
+
+if HXZP_GEN_MOTOR
+
+config HXZP_GEN_MOTOR_INIT_PRIORITY
+	int "gen-motor init priority"
+	default 90
+	help
+	  Device initialization priority for the gen-motor driver.
+
+endif
