@@ -50,7 +50,7 @@ LOG_MODULE_REGISTER(hxzp_gen_motor, LOG_LEVEL_INF);
 #define GEN_MOTOR_ID_GROUP_MASK 0x780U
 
 /** @brief 主动上报周期最小值，单位毫秒。 */
-#define GEN_MOTOR_REPORT_PERIOD_MIN_MS 10U
+#define GEN_MOTOR_REPORT_PERIOD_MIN_MS 2U
 
 /** @brief 主动上报周期最大值，单位毫秒。 */
 #define GEN_MOTOR_REPORT_PERIOD_MAX_MS 60000U
@@ -120,17 +120,6 @@ enum gen_motor_protocol_status_code
 };
 
 /**
- * @brief 电机协议主动上报命令码。
- */
-enum gen_motor_report_code
-{
-    /**< 位置上报。 */
-    GEN_MOTOR_REPORT_POSITION = 0x80,
-    /**< 速度上报。 */
-    GEN_MOTOR_REPORT_SPEED = 0x81,
-};
-
-/**
  * @brief 接收帧分类。
  */
 enum gen_motor_frame_kind
@@ -173,6 +162,10 @@ struct gen_motor_data
     struct k_mutex lock;
     /**< 接收过滤器句柄。 */
     int filter_handles[GEN_MOTOR_FILTER_COUNT];
+    /**< 待接收的管理应答命令码。 */
+    uint8_t pending_management_ack_cmd;
+    /**< 是否存在待接收的管理应答。 */
+    bool pending_management_ack_valid;
     /**< 是否已经初始化完成。 */
     bool initialized;
 };
@@ -190,8 +183,14 @@ struct gen_motor
     size_t index;
     /**< 电机默认节点 ID。 */
     uint8_t default_node_id;
+    /**< 电机默认主动上报周期，单位毫秒。 */
+    uint16_t default_report_period_ms;
     /**< 状态缓存。 */
     struct gen_motor_state state;
+    /**< 是否已经打印过状态上报日志。 */
+    bool state_report_logged;
+    /**< 普通命令待应答位图。 */
+    uint64_t pending_ack_mask;
     /**< 进入 OTA 前的上报使能。 */
     bool ota_report_enabled_before_ota;
     /**< 进入 OTA 前的上报周期。 */
@@ -258,6 +257,126 @@ static bool gen_motor_foc_config_param_is_valid(enum gen_motor_foc_config_param 
 }
 
 /**
+ * @brief 判断主动上报周期是否有效。
+ * @param period_ms 主动上报周期，单位毫秒。
+ * @return bool true 表示有效，false 表示无效。
+ */
+static bool gen_motor_report_period_is_valid(uint16_t period_ms)
+{
+    if (period_ms < GEN_MOTOR_REPORT_PERIOD_MIN_MS)
+    {
+        return false;
+    }
+
+    if (period_ms > GEN_MOTOR_REPORT_PERIOD_MAX_MS)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * @brief 判断普通命令是否可以记录待应答状态。
+ * @param cmd 命令码。
+ * @return bool true 表示可以记录，false 表示不能记录。
+ */
+static bool gen_motor_ack_cmd_can_be_pending(uint8_t cmd)
+{
+    return cmd < 64U;
+}
+
+/**
+ * @brief 生成普通命令待应答位。
+ * @param cmd 命令码。
+ * @return uint64_t 待应答位掩码。
+ */
+static uint64_t gen_motor_ack_pending_bit(uint8_t cmd)
+{
+    return UINT64_C(1) << cmd;
+}
+
+/**
+ * @brief 记录普通命令待应答状态。
+ * @param motor 电机对象。
+ * @param cmd 命令码。
+ * @return void
+ */
+static void gen_motor_mark_pending_ack_locked(struct gen_motor *motor, uint8_t cmd)
+{
+    if (!gen_motor_ack_cmd_can_be_pending(cmd))
+    {
+        return;
+    }
+
+    motor->pending_ack_mask |= gen_motor_ack_pending_bit(cmd);
+}
+
+/**
+ * @brief 取走匹配的普通命令待应答状态。
+ * @param motor 电机对象。
+ * @param cmd 命令码。
+ * @return bool true 表示存在匹配待应答，false 表示不存在。
+ */
+static bool gen_motor_take_pending_ack_locked(struct gen_motor *motor, uint8_t cmd)
+{
+    uint64_t mask;
+
+    if (!gen_motor_ack_cmd_can_be_pending(cmd))
+    {
+        return false;
+    }
+
+    mask = gen_motor_ack_pending_bit(cmd);
+
+    if ((motor->pending_ack_mask & mask) == 0U)
+    {
+        return false;
+    }
+
+    motor->pending_ack_mask &= ~mask;
+
+    return true;
+}
+
+/**
+ * @brief 记录管理命令待应答状态。
+ * @param data gen-motor 运行数据。
+ * @param cmd 命令码。
+ * @return void
+ */
+static void gen_motor_mark_pending_management_ack_locked(struct gen_motor_data *data,
+                                                         uint8_t cmd)
+{
+    data->pending_management_ack_cmd = cmd;
+    data->pending_management_ack_valid = true;
+}
+
+/**
+ * @brief 取走匹配的管理命令待应答状态。
+ * @param data gen-motor 运行数据。
+ * @param cmd 命令码。
+ * @return bool true 表示存在匹配待应答，false 表示不存在。
+ */
+static bool gen_motor_take_pending_management_ack_locked(struct gen_motor_data *data,
+                                                         uint8_t cmd)
+{
+    if (!data->pending_management_ack_valid)
+    {
+        return false;
+    }
+
+    if (data->pending_management_ack_cmd != cmd)
+    {
+        return false;
+    }
+
+    data->pending_management_ack_valid = false;
+
+    return true;
+}
+
+/**
  * @brief 判断电机对象是否有效。
  * @param motor 电机对象。
  * @return bool true 表示有效，false 表示无效。
@@ -294,17 +413,27 @@ static void gen_motor_reset_one_locked(struct gen_motor *motor)
     const struct device *dev = motor->dev;
     size_t index = motor->index;
     uint8_t default_node_id = motor->default_node_id;
+    uint16_t default_report_period_ms = motor->default_report_period_ms;
 
     memset(motor, 0, sizeof(*motor));
     motor->dev = dev;
     motor->name = name;
     motor->index = index;
     motor->default_node_id = default_node_id;
+    motor->default_report_period_ms = default_report_period_ms;
     motor->state.node_id = default_node_id;
     motor->state.configured = true;
     motor->state.requested_node_id = default_node_id;
     motor->state.requested_mode = GEN_MOTOR_CONTROL_MODE_SPEED;
-    motor->state.report_period_ms = GEN_MOTOR_REPORT_PERIOD_MIN_MS;
+
+    if (gen_motor_report_period_is_valid(default_report_period_ms))
+    {
+        motor->state.report_period_ms = default_report_period_ms;
+    }
+    else
+    {
+        motor->state.report_period_ms = GEN_MOTOR_REPORT_PERIOD_MIN_MS;
+    }
 }
 
 /**
@@ -322,6 +451,8 @@ static void gen_motor_reset_all_locked(struct gen_motor_data *data)
     }
 
     memset(&data->last_discovery, 0, sizeof(data->last_discovery));
+    data->pending_management_ack_cmd = 0U;
+    data->pending_management_ack_valid = false;
 }
 
 /**
@@ -441,10 +572,11 @@ static bool gen_motor_decode_frame_id(uint32_t frame_id,
 /**
  * @brief 记录发送结果。
  * @param motor 电机对象。
+ * @param cmd 命令码。
  * @param ret 发送结果。
  * @return void
  */
-static void gen_motor_record_send_result_locked(struct gen_motor *motor, int ret)
+static void gen_motor_record_send_result_locked(struct gen_motor *motor, uint8_t cmd, int ret)
 {
     if (ret < 0)
     {
@@ -454,6 +586,39 @@ static void gen_motor_record_send_result_locked(struct gen_motor *motor, int ret
 
     motor->state.last_can_error = 0;
     motor->state.tx_count++;
+    gen_motor_mark_pending_ack_locked(motor, cmd);
+}
+
+/**
+ * @brief 记录管理命令发送结果。
+ * @param data gen-motor 运行数据。
+ * @param cmd 命令码。
+ * @param ret 发送结果。
+ * @return void
+ */
+static void gen_motor_record_management_send_result_locked(struct gen_motor_data *data,
+                                                           uint8_t cmd,
+                                                           int ret)
+{
+    if (data->motor_count > 0U)
+    {
+        if (ret < 0)
+        {
+            data->motors[0].state.last_can_error = ret;
+        }
+        else
+        {
+            data->motors[0].state.last_can_error = 0;
+            data->motors[0].state.tx_count++;
+        }
+    }
+
+    if (ret < 0)
+    {
+        return;
+    }
+
+    gen_motor_mark_pending_management_ack_locked(data, cmd);
 }
 
 /**
@@ -477,7 +642,7 @@ static int gen_motor_send_payload(struct gen_motor *motor,
                                  CAN_MAX_DLC);
 
     k_mutex_lock(&data->lock, K_FOREVER);
-    gen_motor_record_send_result_locked(motor, ret);
+    gen_motor_record_send_result_locked(motor, payload[0], ret);
     k_mutex_unlock(&data->lock);
 
     return ret;
@@ -503,10 +668,7 @@ static int gen_motor_send_management_payload(const struct device *dev,
 
     k_mutex_lock(&data->lock, K_FOREVER);
 
-    if (data->motor_count > 0U)
-    {
-        gen_motor_record_send_result_locked(&data->motors[0], ret);
-    }
+    gen_motor_record_management_send_result_locked(data, payload[0], ret);
 
     k_mutex_unlock(&data->lock);
 
@@ -674,10 +836,23 @@ static void gen_motor_handle_ack_locked(struct gen_motor *motor,
     struct gen_motor_state *state = &motor->state;
     size_t payload_size;
 
+    if (!gen_motor_take_pending_ack_locked(motor, frame->data[0]))
+    {
+        return;
+    }
+
     state->last_ack.cmd = frame->data[0];
     state->last_ack.status = frame->data[1];
     state->ack_valid = true;
     state->ack_count++;
+
+    if (state->last_ack.status != GEN_MOTOR_STATUS_OK)
+    {
+        LOG_WRN("%s ack failed: cmd=0x%02x status=0x%02x",
+                motor->name,
+                state->last_ack.cmd,
+                state->last_ack.status);
+    }
 
     memset(state->last_ack.payload, 0, sizeof(state->last_ack.payload));
 
@@ -719,6 +894,12 @@ static void gen_motor_handle_ack_locked(struct gen_motor *motor,
         state->app_version.minor = frame->data[3];
         state->app_version.patch = frame->data[4];
         state->app_version_valid = true;
+
+        LOG_INF("motor version: name=%s version=%u.%u.%u",
+                motor->name,
+                state->app_version.major,
+                state->app_version.minor,
+                state->app_version.patch);
     }
 
     if (((frame->data[0] == GEN_MOTOR_CMD_SET_REPORT_CONFIG) ||
@@ -729,6 +910,11 @@ static void gen_motor_handle_ack_locked(struct gen_motor *motor,
         state->report_enabled = (frame->data[2] != 0U);
         state->report_period_ms = sys_get_le16(&frame->data[3]);
         state->report_config_valid = true;
+
+        LOG_INF("motor report config: name=%s enable=%u period=%u ms",
+                motor->name,
+                state->report_enabled ? 1U : 0U,
+                state->report_period_ms);
     }
 
     if (((frame->data[0] == GEN_MOTOR_CMD_SET_FOC_CONFIG) ||
@@ -786,6 +972,11 @@ static void gen_motor_handle_management_ack_locked(struct gen_motor_data *data,
         return;
     }
 
+    if (!gen_motor_take_pending_management_ack_locked(data, frame->data[0]))
+    {
+        return;
+    }
+
     motor = &data->motors[0];
     state = &motor->state;
     state->last_ack.cmd = frame->data[0];
@@ -837,23 +1028,21 @@ static void gen_motor_handle_report_locked(struct gen_motor *motor,
 {
     struct gen_motor_state *state = &motor->state;
 
-    switch (frame->data[0])
+    if (frame->dlc < CAN_MAX_DLC)
     {
-    case GEN_MOTOR_REPORT_POSITION:
-        state->position_mrad = (int32_t)sys_get_le32(&frame->data[1]);
-        state->position_valid = true;
-        state->report_count++;
-        break;
+        return;
+    }
 
-    case GEN_MOTOR_REPORT_SPEED:
-        state->speed_mrad_s = (int32_t)sys_get_le32(&frame->data[1]);
-        state->speed_valid = true;
-        state->report_count++;
-        break;
+    state->position_mrad = (int32_t)sys_get_le32(&frame->data[0]);
+    state->speed_mrad_s = (int32_t)sys_get_le32(&frame->data[4]);
+    state->position_valid = true;
+    state->speed_valid = true;
+    state->report_count++;
 
-    default:
-        LOG_WRN("Unknown report cmd=0x%02x", frame->data[0]);
-        break;
+    if (!motor->state_report_logged)
+    {
+        LOG_INF("motor report: name=%s type=state", motor->name);
+        motor->state_report_logged = true;
     }
 }
 
@@ -931,7 +1120,7 @@ static void gen_motor_handle_can_frame(const struct can_frame *frame, void *user
         return;
     }
 
-    if (frame->dlc >= 5U)
+    if (frame->dlc >= CAN_MAX_DLC)
     {
         gen_motor_handle_report_locked(motor, frame);
     }
@@ -1036,7 +1225,7 @@ static int gen_motor_init(const struct device *dev)
     data->initialized = true;
     k_mutex_unlock(&data->lock);
 
-    LOG_INF("gen-motor ready: motors=%u", (unsigned int)data->motor_count);
+    LOG_DBG("gen-motor ready: motors=%u", (unsigned int)data->motor_count);
 
     return 0;
 }
@@ -1543,8 +1732,7 @@ int gen_motor_set_report_config(const struct gen_motor *motor,
     uint16_t old_period_ms;
     int ret;
 
-    if ((period_ms < GEN_MOTOR_REPORT_PERIOD_MIN_MS) ||
-        (period_ms > GEN_MOTOR_REPORT_PERIOD_MAX_MS))
+    if (!gen_motor_report_period_is_valid(period_ms))
     {
         return -EINVAL;
     }
@@ -1856,6 +2044,7 @@ int gen_motor_request_zero(const struct gen_motor *motor)
     {                                                                                   \
         .name = DT_PROP(child_id, motor_name),                                          \
         .default_node_id = DT_PROP(child_id, node_id),                                  \
+        .default_report_period_ms = DT_PROP(child_id, report_period_ms),                \
     },
 
 #define GEN_MOTOR_DEFINE(inst)                                                          \

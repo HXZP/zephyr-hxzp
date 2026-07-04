@@ -533,7 +533,7 @@ static int uart_protocol_init(const struct device *dev)
                                     (void *)dev);
     uart_irq_rx_enable(config->uart_dev);
 
-    LOG_INF("UART protocol init done");
+    LOG_DBG("UART protocol init done");
     return 0;
 }
 

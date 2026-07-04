@@ -392,7 +392,7 @@ static int can_protocol_init(const struct device *dev)
     data->initialized = true;
     k_mutex_unlock(&data->lock);
 
-    LOG_INF("CAN protocol ready: bitrate=%u tx_queue=%u rx_queue=%u filters=%u",
+    LOG_DBG("CAN protocol ready: bitrate=%u tx_queue=%u rx_queue=%u filters=%u",
             config->bitrate,
             (unsigned int)data->tx_queue_len,
             (unsigned int)data->rx_queue_len,
